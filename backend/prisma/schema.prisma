@@ -1,13 +1,52 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// DEVELOPER C MODULES ONLY (Comments, Likes, Bookmarks)
+// ==========================================
+
+model Comment {
+  id                String   @id @default(uuid()) @db.Uuid
+  post_id           String   @db.Uuid
+  user_id           String   @db.Uuid
+  parent_comment_id String?  @db.Uuid
+  content           String   @db.Text
+  is_deleted        Boolean  @default(false)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  parent  Comment?  @relation("CommentReplies", fields: [parent_comment_id], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([post_id])
+  @@index([user_id])
+  @@index([parent_comment_id])
+  @@map("comments")
+}
+
+model PostLike {
+  post_id    String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+
+  @@id([post_id, user_id])
+  @@map("post_likes")
+}
+
+model Bookmark {
+  post_id    String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+
+  @@id([post_id, user_id])
+  @@map("bookmarks")
 }
