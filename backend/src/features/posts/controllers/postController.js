@@ -3,7 +3,7 @@ import { createPost, deletePost, getPostById, getPosts, updatePost } from '../se
 export const getAllPosts = async (_req, res, next) => {
   try {
     const posts = await getPosts();
-    res.json(posts);
+    res.status(200).json({ success: true, data: posts });
   } catch (error) {
     next(error);
   }
@@ -15,7 +15,7 @@ export const getPost = async (req, res, next) => {
     if (!post) {
       return res.status(404).json({ error: 'Post not found' });
     }
-    res.json(post);
+    res.status(200).json({ success: true, data: post });
   } catch (error) {
     next(error);
   }
@@ -23,8 +23,21 @@ export const getPost = async (req, res, next) => {
 
 export const createNewPost = async (req, res, next) => {
   try {
-    const post = await createPost(req.body);
-    res.status(201).json(post);
+    const { title, content, categoryName, tagNames, published } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' });
+    }
+
+    const post = await createPost({
+      title,
+      content,
+      categoryName,
+      tagNames,
+      published,
+    });
+
+    res.status(201).json({ success: true, data: post });
   } catch (error) {
     next(error);
   }
@@ -32,8 +45,13 @@ export const createNewPost = async (req, res, next) => {
 
 export const updateExistingPost = async (req, res, next) => {
   try {
+    const existingPost = await getPostById(req.params.id);
+    if (!existingPost) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
     const post = await updatePost(req.params.id, req.body);
-    res.json(post);
+    res.status(200).json({ success: true, data: post });
   } catch (error) {
     next(error);
   }
@@ -41,8 +59,13 @@ export const updateExistingPost = async (req, res, next) => {
 
 export const removePost = async (req, res, next) => {
   try {
+    const existingPost = await getPostById(req.params.id);
+    if (!existingPost) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
     const post = await deletePost(req.params.id);
-    res.json(post);
+    res.status(200).json({ success: true, data: post });
   } catch (error) {
     next(error);
   }
