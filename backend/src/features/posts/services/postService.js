@@ -74,9 +74,27 @@ export const createPost = async (data) => {
   });
 };
 
-export const getPosts = async () => {
+export const buildPostSearchFilter = (query = '') => {
+  const searchTerm = String(query || '').trim();
+  if (!searchTerm) {
+    return {};
+  }
+
+  return {
+    OR: [
+      { title: { contains: searchTerm, mode: 'insensitive' } },
+      { content: { contains: searchTerm, mode: 'insensitive' } },
+      { slug: { contains: searchTerm, mode: 'insensitive' } },
+    ],
+  };
+};
+
+export const getPosts = async (query = '') => {
   const prisma = getPrismaClient();
+  const where = buildPostSearchFilter(query);
+
   return prisma.post.findMany({
+    where,
     include: {
       category: true,
       tags: { include: { tag: true } },

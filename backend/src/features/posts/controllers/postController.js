@@ -1,8 +1,8 @@
 import { createPost, deletePost, getPostById, getPosts, updatePost } from '../services/postService.js';
 
-export const getAllPosts = async (_req, res, next) => {
+export const getAllPosts = async (req, res, next) => {
   try {
-    const posts = await getPosts();
+    const posts = await getPosts(req.query.search || req.query.q || '');
     res.status(200).json({ success: true, data: posts });
   } catch (error) {
     next(error);
