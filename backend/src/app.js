@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import routes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { setupSwagger } from './config/swagger.js';
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.get('/', (_req, res) => {
 });
 
 app.use('/api', routes);
+setupSwagger(app);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
