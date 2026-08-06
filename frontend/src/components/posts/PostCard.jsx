@@ -29,8 +29,11 @@ export default function PostCard({ post, showActions = false, onDelete }) {
 
   const statusColors = {
     published: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    PUBLISHED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
     draft: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    DRAFT: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
     archived: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+    ARCHIVED: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
   };
 
   return (

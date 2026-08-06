@@ -27,7 +27,7 @@ export default function CategoryPage() {
     try {
       setLoading(true);
       const [allPosts, allCategories] = await Promise.all([
-        fetchPosts({ status: 'published' }),
+        fetchPosts({ status: 'PUBLISHED' }),
         fetchCategories(),
       ]);
 

@@ -72,7 +72,6 @@ export default function CreatePostPage() {
       setError('');
 
       const postData = {
-        authorId: user?.id || '079cdd69-05d4-4c6b-b8bf-9883afe4c452',
         title: title.trim(),
         content,
         excerpt: excerpt.trim(),
@@ -80,6 +79,10 @@ export default function CreatePostPage() {
         status,
         tagNames: tags,
       };
+
+      if (user?.id) {
+        postData.authorId = user.id;
+      }
 
       if (categoryId) {
         postData.categoryId = categoryId;

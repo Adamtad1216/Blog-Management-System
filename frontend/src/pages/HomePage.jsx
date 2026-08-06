@@ -22,7 +22,7 @@ export default function HomePage() {
     try {
       setLoading(true);
       const [fetchedPosts, fetchedCategories, fetchedTags] = await Promise.all([
-        fetchPosts({ search: searchQuery, categoryId: selectedCategory, status: 'published' }),
+        fetchPosts({ search: searchQuery, categoryId: selectedCategory, status: 'PUBLISHED' }),
         fetchCategories(),
         fetchTags(),
       ]);

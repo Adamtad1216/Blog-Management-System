@@ -5,18 +5,24 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Blog Management API',
+      title: 'Blog Management System API',
       version: '1.0.0',
-      description: 'Swagger documentation for auth, posts, categories, tags, search, and uploads',
+      description: 'API documentation for Blog Management System (Auth, Posts, Categories, Tags, Uploads, Comments, Likes, Bookmarks)',
     },
-    servers: [{ url: 'http://localhost:5000' }],
-    tags: [
-      { name: 'Posts', description: 'Post management endpoints' },
-      { name: 'Categories', description: 'Category management endpoints' },
-      { name: 'Tags', description: 'Tag management endpoints' },
-      { name: 'Uploads', description: 'Image upload endpoints' },
+    servers: [
+      {
+        url: 'http://localhost:5000',
+        description: 'Local development server',
+      },
     ],
     components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
       schemas: {
         User: {
           type: 'object',
@@ -27,7 +33,7 @@ const swaggerOptions = {
             email: { type: 'string' },
             bio: { type: 'string' },
             avatar: { type: 'string' },
-            role: { type: 'string', enum: ['admin', 'author', 'reader'] },
+            role: { type: 'string', enum: ['ADMIN', 'AUTHOR', 'READER'] },
             isActive: { type: 'boolean' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
@@ -56,7 +62,7 @@ const swaggerOptions = {
             excerpt: { type: 'string' },
             content: { type: 'string' },
             featuredImage: { type: 'string' },
-            status: { type: 'string', enum: ['draft', 'published', 'archived'] },
+            status: { type: 'string', enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'] },
             viewsCount: { type: 'integer' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
@@ -72,7 +78,6 @@ const swaggerOptions = {
             slug: { type: 'string' },
             description: { type: 'string' },
             createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' },
           },
         },
         Tag: {
@@ -81,8 +86,6 @@ const swaggerOptions = {
             id: { type: 'string', format: 'uuid' },
             name: { type: 'string' },
             slug: { type: 'string' },
-            createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' },
           },
         },
         CreatePostInput: {
@@ -112,9 +115,9 @@ const swaggerOptions = {
             },
             status: {
               type: 'string',
-              enum: ['draft', 'published', 'archived'],
-              default: 'draft',
-              example: 'published',
+              enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
+              default: 'DRAFT',
+              example: 'PUBLISHED',
             },
             categoryId: {
               type: 'string',
@@ -153,16 +156,18 @@ const swaggerOptions = {
       },
     },
   },
-  apis: ['./src/**/*.js'],
+  apis: ['./src/**/*.js', './src/routes/*.js'],
 };
 
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
 export const setupSwagger = (app) => {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.get('/api-docs.json', (_req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
   });
 };
 
+export default swaggerSpec;

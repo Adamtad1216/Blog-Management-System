@@ -10,31 +10,39 @@ datasource db {
 }
 
 enum Role {
-  admin
-  author
-  reader
+  ADMIN
+  AUTHOR
+  READER
 }
 
 enum PostStatus {
-  draft
-  published
-  archived
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
+// ==========================================
+// USERS & REFRESH TOKENS (Developer A)
+// ==========================================
+
 model User {
-  id            String         @id @default(uuid()) @db.Uuid
-  fullName      String         @map("full_name") @db.VarChar(100)
-  username      String         @unique @db.VarChar(50)
-  email         String         @unique @db.VarChar(100)
-  password      String         @db.Text
-  bio           String?        @db.Text
-  avatar        String?        @db.Text
-  role          Role           @default(reader)
-  isActive      Boolean        @default(true) @map("is_active")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
-  posts         Post[]
+  id        String   @id @default(uuid()) @db.Uuid
+  fullName  String   @map("full_name") @db.VarChar(100)
+  username  String   @unique @db.VarChar(50)
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.Text
+  bio       String?  @db.Text
+  avatar    String?  @db.Text
+  role      Role     @default(READER)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   refreshTokens RefreshToken[]
+  posts         Post[]
+  comments      Comment[]
+  likes         PostLike[]
+  bookmarks     Bookmark[]
 
   @@index([role])
   @@map("users")
@@ -51,25 +59,26 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+// ==========================================
+// CATEGORIES, POSTS, TAGS (Developer B)
+// ==========================================
+
 model Category {
   id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique @db.VarChar(255)
-  slug        String   @unique @db.VarChar(255)
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(120)
   description String?  @db.Text
-  posts       Post[]
   createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  posts       Post[]
 
   @@map("categories")
 }
 
 model Tag {
   id        String    @id @default(uuid()) @db.Uuid
-  name      String    @unique @db.VarChar(255)
-  slug      String    @unique @db.VarChar(255)
-  posts     PostTag[]
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  name      String    @unique @db.VarChar(100)
+  slug      String    @unique @db.VarChar(120)
+  post_tags PostTag[]
 
   @@map("tags")
 }
@@ -77,20 +86,24 @@ model Tag {
 model Post {
   id            String     @id @default(uuid()) @db.Uuid
   authorId      String     @map("author_id") @db.Uuid
-  author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   categoryId    String?    @map("category_id") @db.Uuid
-  category      Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   title         String     @db.VarChar(255)
   slug          String     @unique @db.VarChar(255)
   excerpt       String?    @db.Text
   content       String?    @db.Text
   featuredImage String?    @map("featured_image") @db.Text
-  status        PostStatus @default(draft)
+  status        PostStatus @default(DRAFT)
   viewsCount    Int        @default(0) @map("views_count")
   createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
   publishedAt   DateTime?  @map("published_at")
-  tags          PostTag[]
+
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category  Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags      PostTag[]
+  comments  Comment[]
+  likes     PostLike[]
+  bookmarks Bookmark[]
 
   @@index([authorId])
   @@index([categoryId])
@@ -108,3 +121,52 @@ model PostTag {
   @@map("post_tags")
 }
 
+// ==========================================
+// COMMENTS, LIKES, BOOKMARKS (Developer C)
+// ==========================================
+
+model Comment {
+  id              String   @id @default(uuid()) @db.Uuid
+  postId          String   @map("post_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  parentCommentId String?  @map("parent_comment_id") @db.Uuid
+  content         String   @db.Text
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  post   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent Comment? @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentCommentId])
+  @@map("comments")
+}
+
+model PostLike {
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@map("post_likes")
+}
+
+model Bookmark {
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@map("bookmarks")
+}

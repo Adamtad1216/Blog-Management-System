@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import app from './src/app.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 
@@ -8,7 +9,7 @@ const startServer = async () => {
     await connectDatabase();
 
     const server = app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
+      console.log(`🚀 Blog Management System Backend running at http://localhost:${PORT}`);
     });
 
     const shutdown = async () => {
@@ -21,7 +22,7 @@ const startServer = async () => {
     process.on('SIGINT', shutdown);
     process.on('SIGTERM', shutdown);
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };

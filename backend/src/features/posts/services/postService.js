@@ -29,13 +29,18 @@ const cleanTagNames = (tagNames = []) => {
     .filter((name) => name.length > 0);
 };
 
+const normalizeStatus = (status = 'DRAFT') => {
+  const upper = String(status || '').toUpperCase();
+  return ['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(upper) ? upper : 'DRAFT';
+};
+
 export const buildPostPayload = ({
   authorId,
   title,
   content,
   excerpt,
   featuredImage,
-  status = 'draft',
+  status = 'DRAFT',
   publishedAt,
   categoryId,
   categoryName,
@@ -44,11 +49,11 @@ export const buildPostPayload = ({
   const slug = generateSlug(title);
   const uniqueTagNames = [...new Set(cleanTagNames(tagNames))];
 
-  const effectiveStatus = ['draft', 'published', 'archived'].includes(status) ? status : 'draft';
+  const effectiveStatus = normalizeStatus(status);
   const effectivePublishedAt =
     publishedAt !== undefined
       ? publishedAt
-      : effectiveStatus === 'published'
+      : effectiveStatus === 'PUBLISHED'
         ? new Date()
         : null;
 
@@ -72,13 +77,14 @@ export const buildPostPayload = ({
     payload.category = {
       connect: { id: categoryId },
     };
-  } else if (categoryName) {
+  } else if (categoryName && String(categoryName).trim()) {
+    const trimmedCat = String(categoryName).trim();
     payload.category = {
       connectOrCreate: {
-        where: { name: categoryName },
+        where: { name: trimmedCat },
         create: {
-          name: categoryName,
-          slug: generateSlug(categoryName),
+          name: trimmedCat,
+          slug: generateSlug(trimmedCat),
         },
       },
     };
@@ -105,7 +111,42 @@ export const buildPostPayload = ({
 
 export const createPost = async (data) => {
   const prisma = getPrismaClient();
-  const postData = buildPostPayload(data);
+
+  // Validate or fallback authorId
+  let authorId = data.authorId;
+  if (authorId) {
+    const userExists = await prisma.user.findUnique({ where: { id: authorId } });
+    if (!userExists) {
+      authorId = null;
+    }
+  }
+
+  if (!authorId) {
+    const fallbackUser =
+      (await prisma.user.findFirst({ where: { role: { in: ['AUTHOR', 'ADMIN'] } } })) ||
+      (await prisma.user.findFirst());
+    if (!fallbackUser) {
+      throw new Error('No user found in database to assign as author');
+    }
+    authorId = fallbackUser.id;
+  }
+
+  const postData = buildPostPayload({ ...data, authorId });
+
+  // Ensure a category is assigned
+  if (!postData.category) {
+    let defaultCat = await prisma.category.findFirst();
+    if (!defaultCat) {
+      defaultCat = await prisma.category.create({
+        data: {
+          name: 'General',
+          slug: 'general',
+          description: 'General articles',
+        },
+      });
+    }
+    postData.category = { connect: { id: defaultCat.id } };
+  }
 
   return prisma.post.create({
     data: postData,
@@ -126,7 +167,7 @@ export const buildPostSearchFilter = (options = {}) => {
   if (typeof options === 'string') {
     query = options;
   } else if (options && typeof options === 'object') {
-    query = options.query || options.search || options.q || '';
+    query = options.search || options.q || '';
     authorId = options.authorId;
     categoryId = options.categoryId;
     status = options.status;
@@ -152,8 +193,11 @@ export const buildPostSearchFilter = (options = {}) => {
     where.categoryId = categoryId;
   }
 
-  if (status && ['draft', 'published', 'archived'].includes(status)) {
-    where.status = status;
+  if (status) {
+    const upper = String(status).toUpperCase();
+    if (['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(upper)) {
+      where.status = upper;
+    }
   }
 
   return where;
@@ -221,12 +265,15 @@ export const updatePost = async (id, data) => {
   const updateData = {};
 
   if (authorId) {
-    updateData.author = { connect: { id: authorId } };
+    const userExists = await prisma.user.findUnique({ where: { id: authorId } });
+    if (userExists) {
+      updateData.author = { connect: { id: authorId } };
+    }
   }
 
   if (typeof title === 'string' && title.trim()) {
-    updateData.title = title;
-    updateData.slug = generateSlug(title);
+    updateData.title = title.trim();
+    updateData.slug = generateSlug(title.trim());
   }
 
   if (content !== undefined) {
@@ -241,10 +288,13 @@ export const updatePost = async (id, data) => {
     updateData.featuredImage = featuredImage;
   }
 
-  if (status !== undefined && ['draft', 'published', 'archived'].includes(status)) {
-    updateData.status = status;
-    if (status === 'published' && !publishedAt) {
-      updateData.publishedAt = new Date();
+  if (status !== undefined) {
+    const upper = String(status).toUpperCase();
+    if (['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(upper)) {
+      updateData.status = upper;
+      if (upper === 'PUBLISHED' && !publishedAt) {
+        updateData.publishedAt = new Date();
+      }
     }
   }
 
@@ -252,24 +302,25 @@ export const updatePost = async (id, data) => {
     updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
   }
 
+  if (categoryId) {
+    updateData.category = { connect: { id: categoryId } };
+  } else if (categoryName && String(categoryName).trim()) {
+    const trimmedCat = String(categoryName).trim();
+    updateData.category = {
+      connectOrCreate: {
+        where: { name: trimmedCat },
+        create: {
+          name: trimmedCat,
+          slug: generateSlug(trimmedCat),
+        },
+      },
+    };
+  }
+
   return prisma.$transaction(async (tx) => {
     const existing = await tx.post.findUnique({ where: { id } });
     if (!existing) {
       throw new Error('Post not found');
-    }
-
-    if (categoryId) {
-      updateData.category = { connect: { id: categoryId } };
-    } else if (categoryName !== undefined) {
-      updateData.category = {
-        connectOrCreate: {
-          where: { name: categoryName },
-          create: {
-            name: categoryName,
-            slug: generateSlug(categoryName),
-          },
-        },
-      };
     }
 
     await tx.post.update({

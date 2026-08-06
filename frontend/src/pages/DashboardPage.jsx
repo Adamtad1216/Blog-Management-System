@@ -48,8 +48,9 @@ export default function DashboardPage() {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const updated = await updatePost(id, { status: newStatus });
-      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
+      const upperStatus = String(newStatus).toUpperCase();
+      await updatePost(id, { status: upperStatus });
+      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: upperStatus } : p)));
     } catch (err) {
       console.error('Failed to update post status:', err);
       alert('Failed to update status.');
@@ -58,9 +59,9 @@ export default function DashboardPage() {
 
   // Metrics Calculation
   const totalPosts = posts.length;
-  const publishedCount = posts.filter((p) => p.status === 'published').length;
-  const draftCount = posts.filter((p) => p.status === 'draft').length;
-  const archivedCount = posts.filter((p) => p.status === 'archived').length;
+  const publishedCount = posts.filter((p) => String(p.status).toUpperCase() === 'PUBLISHED').length;
+  const draftCount = posts.filter((p) => String(p.status).toUpperCase() === 'DRAFT').length;
+  const archivedCount = posts.filter((p) => String(p.status).toUpperCase() === 'ARCHIVED').length;
   const totalViews = posts.reduce((sum, p) => sum + (p.viewsCount || 0), 0);
 
   return (
@@ -211,19 +212,19 @@ export default function DashboardPage() {
 
                       <td className="p-4 text-xs">
                         <select
-                          value={post.status || 'draft'}
+                          value={String(post.status || 'DRAFT').toUpperCase()}
                           onChange={(e) => handleStatusChange(post.id, e.target.value)}
                           className={`px-2.5 py-1 rounded-full text-xs font-semibold border bg-slate-950 focus:outline-none ${
-                            post.status === 'published'
+                            String(post.status).toUpperCase() === 'PUBLISHED'
                               ? 'text-emerald-400 border-emerald-500/30'
-                              : post.status === 'archived'
+                              : String(post.status).toUpperCase() === 'ARCHIVED'
                               ? 'text-slate-400 border-slate-500/30'
                               : 'text-amber-400 border-amber-500/30'
                           }`}
                         >
-                          <option value="draft">DRAFT</option>
-                          <option value="published">PUBLISHED</option>
-                          <option value="archived">ARCHIVED</option>
+                          <option value="DRAFT">DRAFT</option>
+                          <option value="PUBLISHED">PUBLISHED</option>
+                          <option value="ARCHIVED">ARCHIVED</option>
                         </select>
                       </td>
 

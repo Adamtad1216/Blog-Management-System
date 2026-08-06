@@ -20,7 +20,7 @@ export default function SearchPage() {
       try {
         setLoading(true);
         const [fetchedPosts, fetchedCategories] = await Promise.all([
-          fetchPosts({ search: searchQuery, categoryId: selectedCategory, status: 'published' }),
+          fetchPosts({ search: searchQuery, categoryId: selectedCategory, status: 'PUBLISHED' }),
           fetchCategories(),
         ]);
 
