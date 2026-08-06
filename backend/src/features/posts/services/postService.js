@@ -174,16 +174,23 @@ export const getPosts = async (options = {}) => {
   });
 };
 
-export const getPostById = async (id, incrementViews = true) => {
+export const getPostById = async (id, incrementViews = false) => {
   const prisma = getPrismaClient();
 
   if (incrementViews) {
-    await prisma.post
-      .update({
+    try {
+      return await prisma.post.update({
         where: { id },
         data: { viewsCount: { increment: 1 } },
-      })
-      .catch(() => null);
+        include: {
+          author: { select: AUTHOR_SELECT },
+          category: true,
+          tags: { include: { tag: true } },
+        },
+      });
+    } catch (e) {
+      return null;
+    }
   }
 
   return prisma.post.findUnique({

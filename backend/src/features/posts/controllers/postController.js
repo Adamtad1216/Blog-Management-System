@@ -18,7 +18,7 @@ export const getAllPosts = async (req, res, next) => {
 
 export const getPost = async (req, res, next) => {
   try {
-    const post = await getPostById(req.params.id);
+    const post = await getPostById(req.params.id, true);
     if (!post) {
       return res.status(404).json({ error: 'Post not found' });
     }
@@ -68,7 +68,7 @@ export const createNewPost = async (req, res, next) => {
 
 export const updateExistingPost = async (req, res, next) => {
   try {
-    const existingPost = await getPostById(req.params.id);
+    const existingPost = await getPostById(req.params.id, false);
     if (!existingPost) {
       return res.status(404).json({ error: 'Post not found' });
     }
@@ -82,7 +82,7 @@ export const updateExistingPost = async (req, res, next) => {
 
 export const removePost = async (req, res, next) => {
   try {
-    const existingPost = await getPostById(req.params.id);
+    const existingPost = await getPostById(req.params.id, false);
     if (!existingPost) {
       return res.status(404).json({ error: 'Post not found' });
     }
