@@ -4,18 +4,16 @@ import {
   replyCommentService,
   updateCommentService,
   deleteCommentService,
-} from './comments.service.js';
+} from "../services/comments.service.js";
+import { successResponse } from "../utils/response.js";
+import AppError from "../utils/AppError.js";
 
 export const getPostComments = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
     const comments = await getPostCommentsService(postId);
 
-    return res.status(200).json({
-      success: true,
-      message: 'Comments retrieved successfully',
-      data: comments,
-    });
+    return successResponse(res, "Comments retrieved successfully", comments, 200);
   } catch (error) {
     next(error);
   }
@@ -24,24 +22,16 @@ export const getPostComments = async (req, res, next) => {
 export const createComment = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
-    const userId = req.user?.id || req.body.user_id; // Fallback for dev testing before Auth middleware
+    const userId = req.user.id;
     const { content } = req.body;
 
     if (!content || !content.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: [{ field: 'content', message: 'Comment content is required' }],
-      });
+      throw new AppError("Comment content is required", 400);
     }
 
     const comment = await createCommentService(postId, userId, content.trim());
 
-    return res.status(201).json({
-      success: true,
-      message: 'Comment created successfully',
-      data: comment,
-    });
+    return successResponse(res, "Comment created successfully", comment, 201);
   } catch (error) {
     next(error);
   }
@@ -50,24 +40,16 @@ export const createComment = async (req, res, next) => {
 export const replyComment = async (req, res, next) => {
   try {
     const { id: parentCommentId } = req.params;
-    const userId = req.user?.id || req.body.user_id;
+    const userId = req.user.id;
     const { content } = req.body;
 
     if (!content || !content.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: [{ field: 'content', message: 'Reply content is required' }],
-      });
+      throw new AppError("Reply content is required", 400);
     }
 
     const reply = await replyCommentService(parentCommentId, userId, content.trim());
 
-    return res.status(201).json({
-      success: true,
-      message: 'Reply added successfully',
-      data: reply,
-    });
+    return successResponse(res, "Reply added successfully", reply, 201);
   } catch (error) {
     next(error);
   }
@@ -76,24 +58,16 @@ export const replyComment = async (req, res, next) => {
 export const updateComment = async (req, res, next) => {
   try {
     const { id: commentId } = req.params;
-    const userId = req.user?.id || req.body.user_id;
+    const userId = req.user.id;
     const { content } = req.body;
 
     if (!content || !content.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: [{ field: 'content', message: 'Comment content cannot be empty' }],
-      });
+      throw new AppError("Comment content cannot be empty", 400);
     }
 
     const updatedComment = await updateCommentService(commentId, userId, content.trim());
 
-    return res.status(200).json({
-      success: true,
-      message: 'Comment updated successfully',
-      data: updatedComment,
-    });
+    return successResponse(res, "Comment updated successfully", updatedComment, 200);
   } catch (error) {
     next(error);
   }
@@ -102,15 +76,11 @@ export const updateComment = async (req, res, next) => {
 export const deleteComment = async (req, res, next) => {
   try {
     const { id: commentId } = req.params;
-    const userId = req.user?.id || req.body.user_id;
+    const userId = req.user.id;
 
     const deletedComment = await deleteCommentService(commentId, userId);
 
-    return res.status(200).json({
-      success: true,
-      message: 'Comment deleted successfully',
-      data: deletedComment,
-    });
+    return successResponse(res, "Comment deleted successfully", deletedComment, 200);
   } catch (error) {
     next(error);
   }

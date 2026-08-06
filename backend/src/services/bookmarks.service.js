@@ -1,6 +1,15 @@
-import prisma from '../../lib/prisma.js';
+import prisma from "../config/prisma.js";
+import AppError from "../utils/AppError.js";
 
 export const addBookmarkService = async (postId, userId) => {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+  });
+
+  if (!post) {
+    throw new AppError("Post not found", 404);
+  }
+
   const existingBookmark = await prisma.bookmark.findUnique({
     where: {
       post_id_user_id: {
@@ -11,9 +20,7 @@ export const addBookmarkService = async (postId, userId) => {
   });
 
   if (existingBookmark) {
-    const error = new Error('Post is already bookmarked');
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("Post is already bookmarked", 400);
   }
 
   const bookmark = await prisma.bookmark.create({
@@ -21,12 +28,32 @@ export const addBookmarkService = async (postId, userId) => {
       post_id: postId,
       user_id: userId,
     },
+    include: {
+      post: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          excerpt: true,
+          featured_image: true,
+          created_at: true,
+        },
+      },
+    },
   });
 
   return bookmark;
 };
 
 export const removeBookmarkService = async (postId, userId) => {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+  });
+
+  if (!post) {
+    throw new AppError("Post not found", 404);
+  }
+
   const existingBookmark = await prisma.bookmark.findUnique({
     where: {
       post_id_user_id: {
@@ -37,9 +64,7 @@ export const removeBookmarkService = async (postId, userId) => {
   });
 
   if (!existingBookmark) {
-    const error = new Error('Bookmark not found');
-    error.statusCode = 404;
-    throw error;
+    throw new AppError("Bookmark not found", 404);
   }
 
   await prisma.bookmark.delete({
@@ -51,7 +76,7 @@ export const removeBookmarkService = async (postId, userId) => {
     },
   });
 
-  return { message: 'Bookmark removed successfully' };
+  return { message: "Bookmark removed successfully" };
 };
 
 export const getUserBookmarksService = async (userId, page = 1, limit = 10) => {
@@ -68,7 +93,28 @@ export const getUserBookmarksService = async (userId, page = 1, limit = 10) => {
     skip,
     take: limitNum,
     orderBy: {
-      created_at: 'desc',
+      created_at: "desc",
+    },
+    include: {
+      post: {
+        include: {
+          author: {
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              avatar: true,
+            },
+          },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
     },
   });
 

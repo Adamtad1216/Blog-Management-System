@@ -1,6 +1,15 @@
-import prisma from '../../lib/prisma.js';
+import prisma from "../config/prisma.js";
+import AppError from "../utils/AppError.js";
 
 export const likePostService = async (postId, userId) => {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+  });
+
+  if (!post) {
+    throw new AppError("Post not found", 404);
+  }
+
   const existingLike = await prisma.postLike.findUnique({
     where: {
       post_id_user_id: {
@@ -11,9 +20,7 @@ export const likePostService = async (postId, userId) => {
   });
 
   if (existingLike) {
-    const error = new Error('You have already liked this post');
-    error.statusCode = 400;
-    throw error;
+    throw new AppError("You have already liked this post", 400);
   }
 
   const like = await prisma.postLike.create({
@@ -27,10 +34,18 @@ export const likePostService = async (postId, userId) => {
     where: { post_id: postId },
   });
 
-  return { like, likesCount: count };
+  return { like, likesCount: count, isLiked: true };
 };
 
 export const unlikePostService = async (postId, userId) => {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+  });
+
+  if (!post) {
+    throw new AppError("Post not found", 404);
+  }
+
   const existingLike = await prisma.postLike.findUnique({
     where: {
       post_id_user_id: {
@@ -41,9 +56,7 @@ export const unlikePostService = async (postId, userId) => {
   });
 
   if (!existingLike) {
-    const error = new Error('You have not liked this post');
-    error.statusCode = 404;
-    throw error;
+    throw new AppError("You have not liked this post", 404);
   }
 
   await prisma.postLike.delete({
@@ -59,10 +72,18 @@ export const unlikePostService = async (postId, userId) => {
     where: { post_id: postId },
   });
 
-  return { likesCount: count };
+  return { likesCount: count, isLiked: false };
 };
 
 export const getPostLikesService = async (postId, userId = null) => {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+  });
+
+  if (!post) {
+    throw new AppError("Post not found", 404);
+  }
+
   const count = await prisma.postLike.count({
     where: { post_id: postId },
   });
