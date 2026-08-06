@@ -1,6 +1,15 @@
 import { getPrismaClient } from '../../../../config/database.js';
 import { generateSlug } from '../../../utils/slugGenerator.js';
 
+const AUTHOR_SELECT = {
+  id: true,
+  fullName: true,
+  username: true,
+  email: true,
+  avatar: true,
+  role: true,
+};
+
 const normalizeTagNames = (tagNames = []) => {
   if (Array.isArray(tagNames)) {
     return tagNames;
@@ -20,17 +29,50 @@ const cleanTagNames = (tagNames = []) => {
     .filter((name) => name.length > 0);
 };
 
-export const buildPostPayload = ({ title, content, categoryName, tagNames = [], published = false }) => {
+export const buildPostPayload = ({
+  authorId,
+  title,
+  content,
+  excerpt,
+  featuredImage,
+  status = 'draft',
+  publishedAt,
+  categoryId,
+  categoryName,
+  tagNames = [],
+}) => {
   const slug = generateSlug(title);
   const uniqueTagNames = [...new Set(cleanTagNames(tagNames))];
+
+  const effectiveStatus = ['draft', 'published', 'archived'].includes(status) ? status : 'draft';
+  const effectivePublishedAt =
+    publishedAt !== undefined
+      ? publishedAt
+      : effectiveStatus === 'published'
+        ? new Date()
+        : null;
+
   const payload = {
     title,
     slug,
     content,
-    published,
+    excerpt,
+    featuredImage,
+    status: effectiveStatus,
+    publishedAt: effectivePublishedAt ? new Date(effectivePublishedAt) : null,
   };
 
-  if (categoryName) {
+  if (authorId) {
+    payload.author = {
+      connect: { id: authorId },
+    };
+  }
+
+  if (categoryId) {
+    payload.category = {
+      connect: { id: categoryId },
+    };
+  } else if (categoryName) {
     payload.category = {
       connectOrCreate: {
         where: { name: categoryName },
@@ -68,45 +110,86 @@ export const createPost = async (data) => {
   return prisma.post.create({
     data: postData,
     include: {
+      author: { select: AUTHOR_SELECT },
       category: true,
       tags: { include: { tag: true } },
     },
   });
 };
 
-export const buildPostSearchFilter = (query = '') => {
-  const searchTerm = String(query || '').trim();
-  if (!searchTerm) {
-    return {};
+export const buildPostSearchFilter = (options = {}) => {
+  let query = '';
+  let authorId;
+  let categoryId;
+  let status;
+
+  if (typeof options === 'string') {
+    query = options;
+  } else if (options && typeof options === 'object') {
+    query = options.query || options.search || options.q || '';
+    authorId = options.authorId;
+    categoryId = options.categoryId;
+    status = options.status;
   }
 
-  return {
-    OR: [
+  const where = {};
+  const searchTerm = String(query || '').trim();
+
+  if (searchTerm) {
+    where.OR = [
       { title: { contains: searchTerm, mode: 'insensitive' } },
       { content: { contains: searchTerm, mode: 'insensitive' } },
+      { excerpt: { contains: searchTerm, mode: 'insensitive' } },
       { slug: { contains: searchTerm, mode: 'insensitive' } },
-    ],
-  };
+    ];
+  }
+
+  if (authorId) {
+    where.authorId = authorId;
+  }
+
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
+  if (status && ['draft', 'published', 'archived'].includes(status)) {
+    where.status = status;
+  }
+
+  return where;
 };
 
-export const getPosts = async (query = '') => {
+export const getPosts = async (options = {}) => {
   const prisma = getPrismaClient();
-  const where = buildPostSearchFilter(query);
+  const where = buildPostSearchFilter(options);
 
   return prisma.post.findMany({
     where,
     include: {
+      author: { select: AUTHOR_SELECT },
       category: true,
       tags: { include: { tag: true } },
     },
+    orderBy: { createdAt: 'desc' },
   });
 };
 
-export const getPostById = async (id) => {
+export const getPostById = async (id, incrementViews = true) => {
   const prisma = getPrismaClient();
+
+  if (incrementViews) {
+    await prisma.post
+      .update({
+        where: { id },
+        data: { viewsCount: { increment: 1 } },
+      })
+      .catch(() => null);
+  }
+
   return prisma.post.findUnique({
     where: { id },
     include: {
+      author: { select: AUTHOR_SELECT },
       category: true,
       tags: { include: { tag: true } },
     },
@@ -115,20 +198,51 @@ export const getPostById = async (id) => {
 
 export const updatePost = async (id, data) => {
   const prisma = getPrismaClient();
-  const { title, content, published, categoryName, tagNames } = data;
+  const {
+    authorId,
+    title,
+    content,
+    excerpt,
+    featuredImage,
+    status,
+    publishedAt,
+    categoryId,
+    categoryName,
+    tagNames,
+  } = data;
+
   const updateData = {};
+
+  if (authorId) {
+    updateData.author = { connect: { id: authorId } };
+  }
 
   if (typeof title === 'string' && title.trim()) {
     updateData.title = title;
     updateData.slug = generateSlug(title);
   }
 
-  if (typeof content === 'string') {
+  if (content !== undefined) {
     updateData.content = content;
   }
 
-  if (typeof published === 'boolean') {
-    updateData.published = published;
+  if (excerpt !== undefined) {
+    updateData.excerpt = excerpt;
+  }
+
+  if (featuredImage !== undefined) {
+    updateData.featuredImage = featuredImage;
+  }
+
+  if (status !== undefined && ['draft', 'published', 'archived'].includes(status)) {
+    updateData.status = status;
+    if (status === 'published' && !publishedAt) {
+      updateData.publishedAt = new Date();
+    }
+  }
+
+  if (publishedAt !== undefined) {
+    updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
   }
 
   return prisma.$transaction(async (tx) => {
@@ -137,7 +251,9 @@ export const updatePost = async (id, data) => {
       throw new Error('Post not found');
     }
 
-    if (categoryName !== undefined) {
+    if (categoryId) {
+      updateData.category = { connect: { id: categoryId } };
+    } else if (categoryName !== undefined) {
       updateData.category = {
         connectOrCreate: {
           where: { name: categoryName },
@@ -149,13 +265,9 @@ export const updatePost = async (id, data) => {
       };
     }
 
-    const updatedPost = await tx.post.update({
+    await tx.post.update({
       where: { id },
       data: updateData,
-      include: {
-        category: true,
-        tags: { include: { tag: true } },
-      },
     });
 
     if (tagNames !== undefined) {
@@ -187,6 +299,7 @@ export const updatePost = async (id, data) => {
     return tx.post.findUnique({
       where: { id },
       include: {
+        author: { select: AUTHOR_SELECT },
         category: true,
         tags: { include: { tag: true } },
       },
@@ -198,3 +311,4 @@ export const deletePost = async (id) => {
   const prisma = getPrismaClient();
   return prisma.post.delete({ where: { id } });
 };
+

@@ -2,7 +2,14 @@ import { createPost, deletePost, getPostById, getPosts, updatePost } from '../se
 
 export const getAllPosts = async (req, res, next) => {
   try {
-    const posts = await getPosts(req.query.search || req.query.q || '');
+    const { search, q, authorId, categoryId, status } = req.query;
+    const queryOptions = {
+      search: search || q || '',
+      authorId,
+      categoryId,
+      status,
+    };
+    const posts = await getPosts(queryOptions);
     res.status(200).json({ success: true, data: posts });
   } catch (error) {
     next(error);
@@ -23,18 +30,34 @@ export const getPost = async (req, res, next) => {
 
 export const createNewPost = async (req, res, next) => {
   try {
-    const { title, content, categoryName, tagNames, published } = req.body;
+    const {
+      authorId,
+      title,
+      content,
+      excerpt,
+      featuredImage,
+      status,
+      publishedAt,
+      categoryId,
+      categoryName,
+      tagNames,
+    } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({ error: 'Title and content are required' });
     }
 
     const post = await createPost({
+      authorId: authorId || req.user?.id,
       title,
       content,
+      excerpt,
+      featuredImage,
+      status,
+      publishedAt,
+      categoryId,
       categoryName,
       tagNames,
-      published,
     });
 
     res.status(201).json({ success: true, data: post });
@@ -70,3 +93,4 @@ export const removePost = async (req, res, next) => {
     next(error);
   }
 };
+
