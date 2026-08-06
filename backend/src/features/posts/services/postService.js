@@ -1,4 +1,4 @@
-import prisma from '../../../../config/database.js';
+import { getPrismaClient } from '../../../../config/database.js';
 import { generateSlug } from '../../../utils/slugGenerator.js';
 
 const normalizeTagNames = (tagNames = []) => {
@@ -62,6 +62,7 @@ export const buildPostPayload = ({ title, content, categoryName, tagNames = [], 
 };
 
 export const createPost = async (data) => {
+  const prisma = getPrismaClient();
   const postData = buildPostPayload(data);
 
   return prisma.post.create({
@@ -74,6 +75,7 @@ export const createPost = async (data) => {
 };
 
 export const getPosts = async () => {
+  const prisma = getPrismaClient();
   return prisma.post.findMany({
     include: {
       category: true,
@@ -83,6 +85,7 @@ export const getPosts = async () => {
 };
 
 export const getPostById = async (id) => {
+  const prisma = getPrismaClient();
   return prisma.post.findUnique({
     where: { id },
     include: {
@@ -93,6 +96,7 @@ export const getPostById = async (id) => {
 };
 
 export const updatePost = async (id, data) => {
+  const prisma = getPrismaClient();
   const { title, content, published, categoryName, tagNames } = data;
   const updateData = {};
 
@@ -173,5 +177,6 @@ export const updatePost = async (id, data) => {
 };
 
 export const deletePost = async (id) => {
+  const prisma = getPrismaClient();
   return prisma.post.delete({ where: { id } });
 };

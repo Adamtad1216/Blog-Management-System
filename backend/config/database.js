@@ -1,15 +1,28 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+let prisma = null;
+
+export const getPrismaClient = () => {
+  if (!prisma) {
+    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+    prisma = new PrismaClient({ adapter });
+  }
+
+  return prisma;
+};
 
 export const connectDatabase = async () => {
-  await prisma.$connect();
+  const client = getPrismaClient();
+  await client.$connect();
   console.log('Database connected successfully');
 };
 
 export const disconnectDatabase = async () => {
-  await prisma.$disconnect();
+  if (prisma) {
+    await prisma.$disconnect();
+  }
 };
 
-export default prisma;
+export default getPrismaClient();
