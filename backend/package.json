@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "generate": "prisma generate",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force && npm run generate && npm run db:seed",
     "lint": "eslint . --ext .js",
     "format": "prettier --write ."
   },
