@@ -35,6 +35,7 @@ async function main() {
   console.log("✅ Admin user ready:", {
     id: adminUser.id,
     email: adminUser.email,
+    username: adminUser.username,
     role: adminUser.role,
   });
 

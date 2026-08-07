@@ -4,7 +4,7 @@ import {
   getCategories,
   getCategoryById,
   updateCategory,
-} from '../services/categoryService.js';
+} from '../services/categories.service.js';
 
 export const getAllCategories = async (_req, res, next) => {
   try {

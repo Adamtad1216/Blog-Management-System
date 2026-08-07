@@ -5,7 +5,7 @@ import {
   getCategory,
   removeCategory,
   updateExistingCategory,
-} from '../controllers/categoryController.js';
+} from '../controllers/categories.controller.js';
 
 const router = express.Router();
 
@@ -18,8 +18,25 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: List of categories
+ *   post:
+ *     tags: [Categories]
+ *     summary: Create a category
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name: { type: string }
+ *               description: { type: string }
+ *     responses:
+ *       201:
+ *         description: Category created
  */
 router.get('/', getAllCategories);
+router.post('/', createNewCategory);
 
 /**
  * @openapi
@@ -35,30 +52,6 @@ router.get('/', getAllCategories);
  *     responses:
  *       200:
  *         description: Category details
- */
-router.get('/:id', getCategory);
-
-/**
- * @openapi
- * /api/categories:
- *   post:
- *     tags: [Categories]
- *     summary: Create a category
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateCategoryInput'
- *     responses:
- *       201:
- *         description: Category created
- */
-router.post('/', createNewCategory);
-
-/**
- * @openapi
- * /api/categories/{id}:
  *   put:
  *     tags: [Categories]
  *     summary: Update a category
@@ -74,19 +67,11 @@ router.post('/', createNewCategory);
  *           schema:
  *             type: object
  *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
+ *               name: { type: string }
+ *               description: { type: string }
  *     responses:
  *       200:
  *         description: Category updated
- */
-router.put('/:id', updateExistingCategory);
-
-/**
- * @openapi
- * /api/categories/{id}:
  *   delete:
  *     tags: [Categories]
  *     summary: Delete a category
@@ -99,6 +84,8 @@ router.put('/:id', updateExistingCategory);
  *       200:
  *         description: Category deleted
  */
+router.get('/:id', getCategory);
+router.put('/:id', updateExistingCategory);
 router.delete('/:id', removeCategory);
 
 export default router;

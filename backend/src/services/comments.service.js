@@ -1,7 +1,8 @@
-import prisma from "../config/prisma.js";
+import { getPrismaClient } from "../../config/database.js";
 import AppError from "../utils/AppError.js";
 
 export const getPostCommentsService = async (postId) => {
+  const prisma = getPrismaClient();
   const post = await prisma.post.findUnique({
     where: { id: postId },
   });
@@ -12,11 +13,11 @@ export const getPostCommentsService = async (postId) => {
 
   const comments = await prisma.comment.findMany({
     where: {
-      post_id: postId,
-      parent_comment_id: null,
+      postId,
+      parentCommentId: null,
     },
     orderBy: {
-      created_at: "desc",
+      createdAt: "desc",
     },
     include: {
       user: {
@@ -29,7 +30,7 @@ export const getPostCommentsService = async (postId) => {
       },
       replies: {
         orderBy: {
-          created_at: "asc",
+          createdAt: "asc",
         },
         include: {
           user: {
@@ -61,6 +62,7 @@ export const getPostCommentsService = async (postId) => {
 };
 
 export const createCommentService = async (postId, userId, content) => {
+  const prisma = getPrismaClient();
   const post = await prisma.post.findUnique({
     where: { id: postId },
   });
@@ -71,8 +73,8 @@ export const createCommentService = async (postId, userId, content) => {
 
   const comment = await prisma.comment.create({
     data: {
-      post_id: postId,
-      user_id: userId,
+      postId,
+      userId,
       content,
     },
     include: {
@@ -91,6 +93,7 @@ export const createCommentService = async (postId, userId, content) => {
 };
 
 export const replyCommentService = async (parentCommentId, userId, content) => {
+  const prisma = getPrismaClient();
   const parentComment = await prisma.comment.findUnique({
     where: { id: parentCommentId },
   });
@@ -101,9 +104,9 @@ export const replyCommentService = async (parentCommentId, userId, content) => {
 
   const reply = await prisma.comment.create({
     data: {
-      post_id: parentComment.post_id,
-      parent_comment_id: parentCommentId,
-      user_id: userId,
+      postId: parentComment.postId,
+      parentCommentId,
+      userId,
       content,
     },
     include: {
@@ -122,6 +125,7 @@ export const replyCommentService = async (parentCommentId, userId, content) => {
 };
 
 export const updateCommentService = async (commentId, userId, content) => {
+  const prisma = getPrismaClient();
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
   });
@@ -130,11 +134,11 @@ export const updateCommentService = async (commentId, userId, content) => {
     throw new AppError("Comment not found", 404);
   }
 
-  if (comment.user_id !== userId) {
+  if (comment.userId !== userId) {
     throw new AppError("Unauthorized to edit this comment", 403);
   }
 
-  if (comment.is_deleted) {
+  if (comment.isDeleted) {
     throw new AppError("Cannot edit a deleted comment", 400);
   }
 
@@ -157,25 +161,42 @@ export const updateCommentService = async (commentId, userId, content) => {
 };
 
 export const deleteCommentService = async (commentId, userId) => {
+  const prisma = getPrismaClient();
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
+    include: {
+      post: true,
+      replies: true,
+    },
   });
 
   if (!comment) {
     throw new AppError("Comment not found", 404);
   }
 
-  if (comment.user_id !== userId) {
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  const isCommentAuthor = comment.userId === userId;
+  const isPostAuthor = comment.post?.authorId === userId;
+  const isAdmin = currentUser?.role === "ADMIN";
+
+  if (!isCommentAuthor && !isPostAuthor && !isAdmin) {
     throw new AppError("Unauthorized to delete this comment", 403);
   }
 
-  const deletedComment = await prisma.comment.update({
-    where: { id: commentId },
-    data: {
-      is_deleted: true,
-      content: "[This comment has been deleted]",
-    },
-  });
-
-  return deletedComment;
+  if (comment.replies && comment.replies.length > 0) {
+    return await prisma.comment.update({
+      where: { id: commentId },
+      data: {
+        isDeleted: true,
+        content: "[This comment was deleted]",
+      },
+    });
+  } else {
+    return await prisma.comment.delete({
+      where: { id: commentId },
+    });
+  }
 };

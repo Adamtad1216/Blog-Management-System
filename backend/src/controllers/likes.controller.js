@@ -5,6 +5,8 @@ import {
 } from "../services/likes.service.js";
 import { successResponse } from "../utils/response.js";
 
+
+
 export const likePost = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
@@ -18,6 +20,8 @@ export const likePost = async (req, res, next) => {
   }
 };
 
+
+
 export const unlikePost = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
@@ -30,6 +34,8 @@ export const unlikePost = async (req, res, next) => {
     next(error);
   }
 };
+
+
 
 export const getPostLikes = async (req, res, next) => {
   try {

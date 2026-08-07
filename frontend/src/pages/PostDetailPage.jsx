@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchPostById, fetchPosts } from '../services/api.js';
 import { calculateReadingTime } from '../utils/readingTime.js';
+import EngagementBar from '../components/posts/EngagementBar.jsx';
+import CommentsSection from '../components/posts/CommentsSection.jsx';
 
 export default function PostDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [post, setPost] = useState(null);
   const [relatedPosts, setRelatedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [commentCount, setCommentCount] = useState(0);
   const fetchedRef = useRef('');
+  const commentsSectionRef = useRef(null);
 
   useEffect(() => {
     if (!id || fetchedRef.current === id) return;
@@ -38,6 +43,15 @@ export default function PostDetailPage() {
 
     loadPost();
   }, [id]);
+
+  // Auto scroll to comments section if URL contains #comments
+  useEffect(() => {
+    if (!loading && post && (location.hash === '#comments' || location.search.includes('scrollTo=comments'))) {
+      setTimeout(() => {
+        commentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+    }
+  }, [loading, post, location]);
 
   if (loading) {
     return (
@@ -137,7 +151,9 @@ export default function PostDetailPage() {
             </div>
             <div>
               <p className="text-sm font-bold text-slate-200">{author.fullName}</p>
-              <p className="text-xs text-slate-400">@{author.username || 'author'} • {author.role || 'Author'}</p>
+              <p className="text-xs text-slate-400">
+                @{author.username || 'author'} • {author.role === 'ADMIN' ? 'Admin' : 'Author'}
+              </p>
             </div>
           </div>
         )}
@@ -162,6 +178,17 @@ export default function PostDetailPage() {
         {content}
       </div>
 
+      {/* ── Engagement Bar (Like / Comment / Bookmark) ── */}
+      <div className="py-4 border-y border-slate-800">
+        <EngagementBar
+          postId={id}
+          commentCount={commentCount}
+          onCommentClick={() =>
+            commentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        />
+      </div>
+
       {/* Tag Badges Footer */}
       {tags.length > 0 && (
         <div className="pt-6 border-t border-slate-800 flex items-center gap-2 flex-wrap">
@@ -179,6 +206,13 @@ export default function PostDetailPage() {
           })}
         </div>
       )}
+
+      {/* ── Comments Section ── */}
+      <CommentsSection
+        postId={id}
+        onCountChange={setCommentCount}
+        sectionRef={commentsSectionRef}
+      />
 
       {/* Related Posts Section */}
       {relatedPosts.length > 0 && (

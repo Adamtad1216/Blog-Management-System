@@ -1,5 +1,7 @@
-import prisma from "../config/prisma.js";
+import { getPrismaClient } from "../../config/database.js";
 import AppError from "../utils/AppError.js";
+
+const prisma = getPrismaClient();
 
 export const addBookmarkService = async (postId, userId) => {
   const post = await prisma.post.findUnique({
@@ -12,9 +14,9 @@ export const addBookmarkService = async (postId, userId) => {
 
   const existingBookmark = await prisma.bookmark.findUnique({
     where: {
-      post_id_user_id: {
-        post_id: postId,
-        user_id: userId,
+      postId_userId: {
+        postId,
+        userId,
       },
     },
   });
@@ -25,8 +27,8 @@ export const addBookmarkService = async (postId, userId) => {
 
   const bookmark = await prisma.bookmark.create({
     data: {
-      post_id: postId,
-      user_id: userId,
+      postId,
+      userId,
     },
     include: {
       post: {
@@ -35,8 +37,8 @@ export const addBookmarkService = async (postId, userId) => {
           title: true,
           slug: true,
           excerpt: true,
-          featured_image: true,
-          created_at: true,
+          featuredImage: true,
+          createdAt: true,
         },
       },
     },
@@ -56,9 +58,9 @@ export const removeBookmarkService = async (postId, userId) => {
 
   const existingBookmark = await prisma.bookmark.findUnique({
     where: {
-      post_id_user_id: {
-        post_id: postId,
-        user_id: userId,
+      postId_userId: {
+        postId,
+        userId,
       },
     },
   });
@@ -69,9 +71,9 @@ export const removeBookmarkService = async (postId, userId) => {
 
   await prisma.bookmark.delete({
     where: {
-      post_id_user_id: {
-        post_id: postId,
-        user_id: userId,
+      postId_userId: {
+        postId,
+        userId,
       },
     },
   });
@@ -85,15 +87,15 @@ export const getUserBookmarksService = async (userId, page = 1, limit = 10) => {
   const skip = (pageNum - 1) * limitNum;
 
   const totalItems = await prisma.bookmark.count({
-    where: { user_id: userId },
+    where: { userId },
   });
 
   const bookmarks = await prisma.bookmark.findMany({
-    where: { user_id: userId },
+    where: { userId },
     skip,
     take: limitNum,
     orderBy: {
-      created_at: "desc",
+      createdAt: "desc",
     },
     include: {
       post: {

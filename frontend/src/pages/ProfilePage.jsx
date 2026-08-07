@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   fetchPosts,
+  getUserBookmarks,
   updateUserAvatar,
   updateUserProfile,
 } from "../services/api.js";
@@ -11,6 +12,7 @@ import PostCard from "../components/posts/PostCard.jsx";
 export default function ProfilePage() {
   const { user, updateUserInContext } = useAuth();
 
+  const [activeTab, setActiveTab] = useState("posts"); // 'posts' or 'bookmarks'
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || "");
   const [username, setUsername] = useState(user?.username || "");
@@ -19,7 +21,9 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
 
   const [userPosts, setUserPosts] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingBookmarks, setLoadingBookmarks] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -35,25 +39,89 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    const loadUserPosts = async () => {
-      if (!user?.id) return;
+    if (!user?.id) return;
+    const loadProfileData = async () => {
       try {
         setLoadingPosts(true);
-        const allPosts = await fetchPosts();
-        // Filter posts created by the current logged in user
+        setLoadingBookmarks(true);
+        const [allPosts, userBookmarks] = await Promise.all([
+          fetchPosts(),
+          getUserBookmarks(),
+        ]);
         const authored = allPosts.filter(
           (p) => p.authorId === user.id || p.author?.id === user.id
         );
         setUserPosts(authored);
+        setBookmarks(userBookmarks);
       } catch (err) {
-        console.error("Error loading user posts:", err);
+        console.error("Error loading profile data:", err);
       } finally {
         setLoadingPosts(false);
+        setLoadingBookmarks(false);
       }
     };
 
-    loadUserPosts();
+    loadProfileData();
   }, [user?.id]);
+
+  useEffect(() => {
+    const handleBookmarkEvent = (e) => {
+      const { postId, isBookmarked, post } = e.detail || {};
+      if (!postId) return;
+
+      if (isBookmarked) {
+        setBookmarks((prev) => {
+          if (prev.some((p) => p.id === postId)) return prev;
+          if (post) return [post, ...prev];
+          return prev;
+        });
+      } else {
+        setBookmarks((prev) => prev.filter((p) => p.id !== postId));
+      }
+    };
+
+    const handleLikeEvent = (e) => {
+      const { postId, likesCount } = e.detail || {};
+      if (!postId || typeof likesCount !== 'number') return;
+
+      setUserPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, _count: { ...p._count, likes: likesCount } } : p))
+      );
+      setBookmarks((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, _count: { ...p._count, likes: likesCount } } : p))
+      );
+    };
+
+    const handleCommentEvent = (e) => {
+      const { postId, commentsCountDelta } = e.detail || {};
+      if (!postId || typeof commentsCountDelta !== 'number') return;
+
+      setUserPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const current = p._count?.comments ?? 0;
+          return { ...p, _count: { ...p._count, comments: Math.max(0, current + commentsCountDelta) } };
+        })
+      );
+      setBookmarks((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const current = p._count?.comments ?? 0;
+          return { ...p, _count: { ...p._count, comments: Math.max(0, current + commentsCountDelta) } };
+        })
+      );
+    };
+
+    window.addEventListener('post-bookmark-updated', handleBookmarkEvent);
+    window.addEventListener('post-like-updated', handleLikeEvent);
+    window.addEventListener('post-comment-updated', handleCommentEvent);
+
+    return () => {
+      window.removeEventListener('post-bookmark-updated', handleBookmarkEvent);
+      window.removeEventListener('post-like-updated', handleLikeEvent);
+      window.removeEventListener('post-comment-updated', handleCommentEvent);
+    };
+  }, []);
 
   const handleAvatarFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -222,7 +290,7 @@ export default function ProfilePage() {
 
                   <div className="flex items-center gap-2 self-center sm:self-start">
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
-                      {user?.role || "READER"}
+                      {user?.role === 'ADMIN' ? 'ADMIN' : 'AUTHOR'}
                     </span>
                     <button
                       onClick={() => setIsEditing(true)}
@@ -330,48 +398,117 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* User Authored Articles Section */}
+      {/* ─── Profile Navigation Tabs (My Posts & Bookmarks) ─── */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-100">Your Articles</h2>
-          <Link
-            to="/create"
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/20"
-          >
-            + Create Article
-          </Link>
-        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          {/* Tab Buttons */}
+          <div className="flex items-center gap-3">
+            {/* My Posts Tab Icon Button */}
+            <button
+              onClick={() => setActiveTab("posts")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                activeTab === "posts"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 ring-2 ring-indigo-500/50"
+                  : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 hover:bg-slate-800/80"
+              }`}
+            >
+              <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15" />
+              </svg>
+              <span>My Posts ({userPosts.length})</span>
+            </button>
 
-        {loadingPosts ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="glass-card rounded-2xl h-72 animate-pulse bg-slate-900/50"
-              />
-            ))}
+            {/* Bookmarks Tab Icon Button */}
+            <button
+              onClick={() => setActiveTab("bookmarks")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                activeTab === "bookmarks"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 ring-2 ring-indigo-500/50"
+                  : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 hover:bg-slate-800/80"
+              }`}
+            >
+              <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+              </svg>
+              <span>Bookmarks ({bookmarks.length})</span>
+            </button>
           </div>
-        ) : userPosts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {userPosts.map((post) => (
-              <PostCard key={post.id} post={post} showActions />
-            ))}
-          </div>
-        ) : (
-          <div className="glass-panel p-12 text-center rounded-2xl border border-slate-800 space-y-3">
-            <p className="text-slate-300 font-medium">
-              You haven't published any articles yet
-            </p>
-            <p className="text-slate-500 text-xs">
-              Start writing your first story to share with the community.
-            </p>
+
+          {activeTab === "posts" && (
             <Link
               to="/create"
-              className="inline-block px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white"
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/20 self-start sm:self-auto"
             >
-              Write First Post
+              + Create Article
             </Link>
-          </div>
+          )}
+        </div>
+
+        {/* Tab Content Display */}
+        {activeTab === "posts" ? (
+          loadingPosts ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="glass-card rounded-2xl h-72 animate-pulse bg-slate-900/50"
+                />
+              ))}
+            </div>
+          ) : userPosts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {userPosts.map((post) => (
+                <PostCard key={post.id} post={post} showActions />
+              ))}
+            </div>
+          ) : (
+            <div className="glass-panel p-12 text-center rounded-2xl border border-slate-800 space-y-3">
+              <p className="text-slate-300 font-medium">
+                You haven't published any articles yet
+              </p>
+              <p className="text-slate-500 text-xs">
+                Start writing your first story to share with the community.
+              </p>
+              <Link
+                to="/create"
+                className="inline-block px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white"
+              >
+                Write First Post
+              </Link>
+            </div>
+          )
+        ) : (
+          loadingBookmarks ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="glass-card rounded-2xl h-72 animate-pulse bg-slate-900/50"
+                />
+              ))}
+            </div>
+          ) : bookmarks.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {bookmarks.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="glass-panel p-12 text-center rounded-2xl border border-slate-800 space-y-3">
+              <p className="text-slate-300 font-medium">
+                No bookmarked articles yet
+              </p>
+              <p className="text-slate-500 text-xs">
+                Articles you bookmark while browsing will appear here for easy access.
+              </p>
+              <Link
+                to="/"
+                className="inline-block px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white"
+              >
+                Explore Articles
+              </Link>
+            </div>
+          )
         )}
       </div>
     </div>
