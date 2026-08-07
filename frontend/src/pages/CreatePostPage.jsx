@@ -72,12 +72,12 @@ export default function CreatePostPage() {
       setError('');
 
       const postData = {
-        title: title.trim(),
-        content,
-        excerpt: excerpt.trim(),
-        featuredImage,
-        status,
-        tagNames: tags,
+        title: String(title).trim(),
+        content: String(content),
+        excerpt: String(excerpt).trim(),
+        featuredImage: featuredImage ? String(featuredImage) : undefined,
+        status: String(status).toUpperCase(),
+        tagNames: Array.isArray(tags) ? tags.map(String) : [],
       };
 
       if (user?.id) {
