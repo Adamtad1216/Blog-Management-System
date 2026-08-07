@@ -5,7 +5,7 @@ import {
   getTag,
   removeTag,
   updateExistingTag,
-} from '../controllers/tagController.js';
+} from '../controllers/tags.controller.js';
 
 const router = express.Router();
 
@@ -18,8 +18,24 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: List of tags
+ *   post:
+ *     tags: [Tags]
+ *     summary: Create a tag
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name: { type: string }
+ *     responses:
+ *       201:
+ *         description: Tag created
  */
 router.get('/', getAllTags);
+router.post('/', createNewTag);
 
 /**
  * @openapi
@@ -35,30 +51,6 @@ router.get('/', getAllTags);
  *     responses:
  *       200:
  *         description: Tag details
- */
-router.get('/:id', getTag);
-
-/**
- * @openapi
- * /api/tags:
- *   post:
- *     tags: [Tags]
- *     summary: Create a tag
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateTagInput'
- *     responses:
- *       201:
- *         description: Tag created
- */
-router.post('/', createNewTag);
-
-/**
- * @openapi
- * /api/tags/{id}:
  *   put:
  *     tags: [Tags]
  *     summary: Update a tag
@@ -74,28 +66,24 @@ router.post('/', createNewTag);
  *           schema:
  *             type: object
  *             properties:
- *               name:
- *                 type: string
+ *               name: { type: string }
  *     responses:
  *       200:
  *         description: Tag updated
- */
-router.put('/:id', updateExistingTag);
-
-/**
- * @openapi
- * /api/tags/{id}:
  *   delete:
  *     tags: [Tags]
  *     summary: Delete a tag
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema: { type: string }
  *     responses:
  *       200:
  *         description: Tag deleted
  */
+router.get('/:id', getTag);
+router.put('/:id', updateExistingTag);
 router.delete('/:id', removeTag);
 
 export default router;

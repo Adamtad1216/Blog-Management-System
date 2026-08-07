@@ -1,7 +1,7 @@
 import express from 'express';
-import postRoutes from '../features/posts/routes/postRoutes.js';
-import categoryRoutes from '../features/categories/routes/categoryRoutes.js';
-import tagRoutes from '../features/tags/routes/tagRoutes.js';
+import postRoutes from './posts.routes.js';
+import categoryRoutes from './categories.routes.js';
+import tagRoutes from './tags.routes.js';
 import uploadRoutes from './uploadRoutes.js';
 
 const router = express.Router();

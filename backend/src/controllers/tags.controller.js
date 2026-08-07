@@ -1,4 +1,4 @@
-import { createTag, deleteTag, getTagById, getTags, updateTag } from '../services/tagService.js';
+import { createTag, deleteTag, getTagById, getTags, updateTag } from '../services/tags.service.js';
 
 export const getAllTags = async (_req, res, next) => {
   try {

@@ -1,5 +1,5 @@
-import { getPrismaClient } from '../../../../config/database.js';
-import { generateSlug } from '../../../utils/slugGenerator.js';
+import { getPrismaClient } from '../../config/database.js';
+import { generateSlug } from '../utils/slugGenerator.js';
 
 export const createTag = async (data) => {
   const prisma = getPrismaClient();
