@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -47,12 +50,11 @@ model User {
 
 model RefreshToken {
   id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid @map("user_id")
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique @db.Text
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
@@ -66,60 +68,56 @@ model Category {
   name        String   @unique @db.VarChar(100)
   slug        String   @unique @db.VarChar(120)
   description String?  @db.Text
-  created_at  DateTime @default(now()) @map("created_at")
-
-  posts Post[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  posts       Post[]
 
   @@map("categories")
 }
 
-model Post {
-  id             String     @id @default(uuid()) @db.Uuid
-  author_id      String     @db.Uuid @map("author_id")
-  category_id    String     @db.Uuid @map("category_id")
-  title          String     @db.VarChar(255)
-  slug           String     @unique @db.VarChar(255)
-  excerpt        String?    @db.Text
-  content        String     @db.Text
-  featured_image String?    @map("featured_image") @db.Text
-  status         PostStatus @default(DRAFT)
-  views_count    Int        @default(0) @map("views_count")
-  created_at     DateTime   @default(now()) @map("created_at")
-  updated_at     DateTime   @updatedAt @map("updated_at")
-  published_at   DateTime?  @map("published_at")
-
-  author    User      @relation(fields: [author_id], references: [id], onDelete: Restrict)
-  category  Category  @relation(fields: [category_id], references: [id], onDelete: Restrict)
-  post_tags PostTag[]
-
-  comments  Comment[]
-  likes     PostLike[]
-  bookmarks Bookmark[]
-
-  @@index([author_id])
-  @@index([category_id])
-  @@index([status])
-  @@map("posts")
-}
-
 model Tag {
-  id   String @id @default(uuid()) @db.Uuid
-  name String @unique @db.VarChar(100)
-  slug String @unique @db.VarChar(120)
-
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique @db.VarChar(100)
+  slug      String    @unique @db.VarChar(120)
   post_tags PostTag[]
 
   @@map("tags")
 }
 
+model Post {
+  id            String     @id @default(uuid()) @db.Uuid
+  authorId      String     @map("author_id") @db.Uuid
+  categoryId    String?    @map("category_id") @db.Uuid
+  title         String     @db.VarChar(255)
+  slug          String     @unique @db.VarChar(255)
+  excerpt       String?    @db.Text
+  content       String?    @db.Text
+  featuredImage String?    @map("featured_image") @db.Text
+  status        PostStatus @default(DRAFT)
+  viewsCount    Int        @default(0) @map("views_count")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  publishedAt   DateTime?  @map("published_at")
+
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category  Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags      PostTag[]
+  comments  Comment[]
+  likes     PostLike[]
+  bookmarks Bookmark[]
+
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("posts")
+}
+
 model PostTag {
-  post_id String @db.Uuid @map("post_id")
-  tag_id  String @db.Uuid @map("tag_id")
+  postId String @map("post_id") @db.Uuid
+  tagId  String @map("tag_id") @db.Uuid
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
-  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  tag  Tag  @relation(fields: [tag_id], references: [id], onDelete: Cascade)
-
-  @@id([post_id, tag_id])
+  @@id([postId, tagId])
   @@map("post_tags")
 }
 
@@ -128,47 +126,47 @@ model PostTag {
 // ==========================================
 
 model Comment {
-  id                String   @id @default(uuid()) @db.Uuid
-  post_id           String   @db.Uuid @map("post_id")
-  user_id           String   @db.Uuid @map("user_id")
-  parent_comment_id String?  @db.Uuid @map("parent_comment_id")
-  content           String   @db.Text
-  is_deleted        Boolean  @default(false) @map("is_deleted")
-  created_at        DateTime @default(now()) @map("created_at")
-  updated_at        DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  postId          String   @map("post_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  parentCommentId String?  @map("parent_comment_id") @db.Uuid
+  content         String   @db.Text
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  post   Post     @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user   User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  parent Comment? @relation("CommentReplies", fields: [parent_comment_id], references: [id], onDelete: Cascade)
+  post   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent Comment? @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
 
   replies Comment[] @relation("CommentReplies")
 
-  @@index([post_id])
-  @@index([user_id])
-  @@index([parent_comment_id])
+  @@index([postId])
+  @@index([userId])
+  @@index([parentCommentId])
   @@map("comments")
 }
 
 model PostLike {
-  post_id    String   @db.Uuid @map("post_id")
-  user_id    String   @db.Uuid @map("user_id")
-  created_at DateTime @default(now()) @map("created_at")
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
 
-  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([post_id, user_id])
+  @@id([postId, userId])
   @@map("post_likes")
 }
 
 model Bookmark {
-  post_id    String   @db.Uuid @map("post_id")
-  user_id    String   @db.Uuid @map("user_id")
-  created_at DateTime @default(now()) @map("created_at")
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
 
-  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([post_id, user_id])
+  @@id([postId, userId])
   @@map("bookmarks")
 }
