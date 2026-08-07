@@ -19,6 +19,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-slate-400">
               <li><Link to="/" className="hover:text-indigo-400 transition-colors">Home</Link></li>
               <li><Link to="/categories" className="hover:text-indigo-400 transition-colors">Categories</Link></li>
+              <li><Link to="/profile" className="hover:text-indigo-400 transition-colors">My Profile</Link></li>
               <li><Link to="/dashboard" className="hover:text-indigo-400 transition-colors">Author Dashboard</Link></li>
               <li><Link to="/create" className="hover:text-indigo-400 transition-colors">Create Article</Link></li>
             </ul>
@@ -30,13 +31,13 @@ export default function Footer() {
               <li><span className="text-indigo-400">Posts & Media Engine</span></li>
               <li><span>Category & Tag Hierarchy</span></li>
               <li><span>Real-time Full-Text Search</span></li>
-              <li><span>Cloudinary Storage Upload</span></li>
+              <li><span>User Authentication & Profile</span></li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-slate-800/80 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} BlogCraft Content Management Lead (Developer B). All rights reserved.</p>
+          <p>© {new Date().getFullYear()} BlogCraft Platform. All rights reserved.</p>
           <p>Built with React 19, Tailwind CSS & Prisma</p>
         </div>
       </div>

@@ -54,12 +54,19 @@ export async function updateAvatar(userId, file) {
   }
 
   const fileType = await fileTypeFromBuffer(file.buffer);
+  const mimeType = fileType?.mime || file.mimetype || "image/png";
 
-  if (!fileType || !fileType.mime.startsWith("image/")) {
+  if (!mimeType.startsWith("image/")) {
     throw new AppError("Only images are allowed", 400);
   }
 
-  const result = await uploadToCloudinary(file.buffer);
+  let avatarUrl;
+  try {
+    const result = await uploadToCloudinary(file.buffer);
+    avatarUrl = result.secure_url || result.url;
+  } catch (_err) {
+    avatarUrl = `data:${mimeType};base64,${file.buffer.toString("base64")}`;
+  }
 
   const user = await prisma.user.update({
     where: {
@@ -67,7 +74,7 @@ export async function updateAvatar(userId, file) {
     },
 
     data: {
-      avatar: result.secure_url,
+      avatar: avatarUrl,
     },
   });
 

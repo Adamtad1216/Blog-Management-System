@@ -18,7 +18,7 @@ async function findUserByEmail(email) {
 }
 
 export async function registerUser(data) {
-  const { fullName, username, email, password } = data;
+  const { fullName, username, email, password, bio, avatar, role } = data;
   // Check existing user
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -45,6 +45,9 @@ export async function registerUser(data) {
       username,
       email,
       password: hashedPassword,
+      bio: bio || null,
+      avatar: avatar || null,
+      ...(role ? { role } : {}),
     },
   });
   // Generate tokens

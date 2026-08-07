@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import CategoryModal from '../components/categories/CategoryModal.jsx';
-import PostCard from '../components/posts/PostCard.jsx';
-import { deletePost, fetchCategories, fetchPosts, updatePost } from '../services/api.js';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import CategoryModal from "../components/categories/CategoryModal.jsx";
+import PostCard from "../components/posts/PostCard.jsx";
+import {
+  deletePost,
+  fetchCategories,
+  fetchPosts,
+  updatePost,
+} from "../services/api.js";
 
 export default function DashboardPage() {
   const [posts, setPosts] = useState([]);
@@ -10,9 +15,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [viewMode, setViewMode] = useState("table"); // 'table' or 'grid'
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const loadDashboardData = async () => {
@@ -25,7 +30,7 @@ export default function DashboardPage() {
       setPosts(fetchedPosts);
       setCategories(fetchedCategories);
     } catch (err) {
-      console.error('Error loading dashboard data:', err);
+      console.error("Error loading dashboard data:", err);
     } finally {
       setLoading(false);
     }
@@ -36,13 +41,18 @@ export default function DashboardPage() {
   }, [searchQuery, statusFilter]);
 
   const handleDeletePost = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this post? This action cannot be undone.",
+      )
+    )
+      return;
     try {
       await deletePost(id);
       setPosts((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
-      console.error('Failed to delete post:', err);
-      alert('Failed to delete post.');
+      console.error("Failed to delete post:", err);
+      alert("Failed to delete post.");
     }
   };
 
@@ -50,18 +60,26 @@ export default function DashboardPage() {
     try {
       const upperStatus = String(newStatus).toUpperCase();
       await updatePost(id, { status: upperStatus });
-      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status: upperStatus } : p)));
+      setPosts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, status: upperStatus } : p)),
+      );
     } catch (err) {
-      console.error('Failed to update post status:', err);
-      alert('Failed to update status.');
+      console.error("Failed to update post status:", err);
+      alert("Failed to update status.");
     }
   };
 
   // Metrics Calculation
   const totalPosts = posts.length;
-  const publishedCount = posts.filter((p) => String(p.status).toUpperCase() === 'PUBLISHED').length;
-  const draftCount = posts.filter((p) => String(p.status).toUpperCase() === 'DRAFT').length;
-  const archivedCount = posts.filter((p) => String(p.status).toUpperCase() === 'ARCHIVED').length;
+  const publishedCount = posts.filter(
+    (p) => String(p.status).toUpperCase() === "PUBLISHED",
+  ).length;
+  const draftCount = posts.filter(
+    (p) => String(p.status).toUpperCase() === "DRAFT",
+  ).length;
+  const archivedCount = posts.filter(
+    (p) => String(p.status).toUpperCase() === "ARCHIVED",
+  ).length;
   const totalViews = posts.reduce((sum, p) => sum + (p.viewsCount || 0), 0);
 
   return (
@@ -70,10 +88,14 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            Developer B — Content Management Dashboard
+            Author & Content Management Dashboard
           </span>
-          <h1 className="text-3xl font-extrabold text-slate-100 mt-2">Author & Post Management</h1>
-          <p className="text-slate-400 text-sm">Manage drafts, published articles, categories, and post statuses.</p>
+          <h1 className="text-3xl font-extrabold text-slate-100 mt-2">
+            Author & Post Management
+          </h1>
+          <p className="text-slate-400 text-sm">
+            Manage drafts, published articles, categories, and post statuses.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -100,7 +122,9 @@ export default function DashboardPage() {
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-emerald-500/20 space-y-1">
           <p className="text-xs text-emerald-400 font-medium">Published</p>
-          <p className="text-2xl font-black text-emerald-400">{publishedCount}</p>
+          <p className="text-2xl font-black text-emerald-400">
+            {publishedCount}
+          </p>
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-amber-500/20 space-y-1">
           <p className="text-xs text-amber-400 font-medium">Drafts</p>
@@ -140,17 +164,21 @@ export default function DashboardPage() {
         {/* View mode toggle */}
         <div className="flex bg-slate-900 p-0.5 rounded-xl border border-slate-800 text-xs">
           <button
-            onClick={() => setViewMode('table')}
+            onClick={() => setViewMode("table")}
             className={`px-3 py-1.5 rounded-lg transition-colors ${
-              viewMode === 'table' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+              viewMode === "table"
+                ? "bg-indigo-600 text-white font-semibold"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Table View
           </button>
           <button
-            onClick={() => setViewMode('grid')}
+            onClick={() => setViewMode("grid")}
             className={`px-3 py-1.5 rounded-lg transition-colors ${
-              viewMode === 'grid' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+              viewMode === "grid"
+                ? "bg-indigo-600 text-white font-semibold"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Grid Cards
@@ -164,7 +192,7 @@ export default function DashboardPage() {
           Loading dashboard content...
         </div>
       ) : posts.length > 0 ? (
-        viewMode === 'table' ? (
+        viewMode === "table" ? (
           /* Table View */
           <div className="glass-panel rounded-2xl border border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
@@ -181,45 +209,60 @@ export default function DashboardPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-800/80">
                   {posts.map((post) => (
-                    <tr key={post.id} className="hover:bg-slate-900/40 transition-colors">
+                    <tr
+                      key={post.id}
+                      className="hover:bg-slate-900/40 transition-colors"
+                    >
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={post.featuredImage || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=100&q=80'}
+                            src={
+                              post.featuredImage ||
+                              "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=100&q=80"
+                            }
                             alt={post.title}
                             className="w-10 h-10 rounded-lg object-cover bg-slate-900 flex-shrink-0"
                           />
                           <div>
-                            <Link to={`/posts/${post.id}`} className="font-bold text-slate-100 hover:text-indigo-400 line-clamp-1">
+                            <Link
+                              to={`/posts/${post.id}`}
+                              className="font-bold text-slate-100 hover:text-indigo-400 line-clamp-1"
+                            >
                               {post.title}
                             </Link>
                             <span className="text-[11px] text-slate-500">
-                              {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}
+                              {post.createdAt
+                                ? new Date(post.createdAt).toLocaleDateString()
+                                : ""}
                             </span>
                           </div>
                         </div>
                       </td>
 
                       <td className="p-4 text-xs">
-                        <span className="font-medium text-slate-300">{post.author?.fullName || 'John Author'}</span>
+                        <span className="font-medium text-slate-300">
+                          {post.author?.fullName || "Unknown author"}
+                        </span>
                       </td>
 
                       <td className="p-4 text-xs">
                         <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300 font-medium">
-                          {post.category?.name || 'Uncategorized'}
+                          {post.category?.name || "Uncategorized"}
                         </span>
                       </td>
 
                       <td className="p-4 text-xs">
                         <select
-                          value={String(post.status || 'DRAFT').toUpperCase()}
-                          onChange={(e) => handleStatusChange(post.id, e.target.value)}
+                          value={String(post.status || "DRAFT").toUpperCase()}
+                          onChange={(e) =>
+                            handleStatusChange(post.id, e.target.value)
+                          }
                           className={`px-2.5 py-1 rounded-full text-xs font-semibold border bg-slate-950 focus:outline-none ${
-                            String(post.status).toUpperCase() === 'PUBLISHED'
-                              ? 'text-emerald-400 border-emerald-500/30'
-                              : String(post.status).toUpperCase() === 'ARCHIVED'
-                              ? 'text-slate-400 border-slate-500/30'
-                              : 'text-amber-400 border-amber-500/30'
+                            String(post.status).toUpperCase() === "PUBLISHED"
+                              ? "text-emerald-400 border-emerald-500/30"
+                              : String(post.status).toUpperCase() === "ARCHIVED"
+                                ? "text-slate-400 border-slate-500/30"
+                                : "text-amber-400 border-amber-500/30"
                           }`}
                         >
                           <option value="DRAFT">DRAFT</option>
@@ -228,7 +271,9 @@ export default function DashboardPage() {
                         </select>
                       </td>
 
-                      <td className="p-4 text-xs font-mono text-slate-400">{post.viewsCount || 0}</td>
+                      <td className="p-4 text-xs font-mono text-slate-400">
+                        {post.viewsCount || 0}
+                      </td>
 
                       <td className="p-4 text-right space-x-2">
                         <Link
@@ -254,14 +299,24 @@ export default function DashboardPage() {
           /* Grid View */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} showActions onDelete={handleDeletePost} />
+              <PostCard
+                key={post.id}
+                post={post}
+                showActions
+                onDelete={handleDeletePost}
+              />
             ))}
           </div>
         )
       ) : (
         <div className="glass-panel p-12 text-center rounded-2xl border border-slate-800 space-y-3">
-          <p className="text-slate-300 font-medium">No posts found in dashboard</p>
-          <Link to="/create" className="inline-block px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white">
+          <p className="text-slate-300 font-medium">
+            No posts found in dashboard
+          </p>
+          <Link
+            to="/create"
+            className="inline-block px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white"
+          >
             Create First Post
           </Link>
         </div>
@@ -271,7 +326,9 @@ export default function DashboardPage() {
       <CategoryModal
         isOpen={isCategoryModalOpen}
         onClose={() => setIsCategoryModalOpen(false)}
-        onCategoryCreated={(newCat) => setCategories((prev) => [...prev, newCat])}
+        onCategoryCreated={(newCat) =>
+          setCategories((prev) => [...prev, newCat])
+        }
       />
     </div>
   );

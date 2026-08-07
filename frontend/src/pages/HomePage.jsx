@@ -71,7 +71,7 @@ export default function HomePage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-64 bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            <span>✨ Developer B Content Management Platform</span>
+            <span>✨ BlogCraft Content Management Platform</span>
           </div>
           <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-100 tracking-tight leading-tight">
             Discover Articles, Technical Insights & <span className="gradient-text">Stories</span>
