@@ -1,5 +1,7 @@
-import prisma from "../config/prisma.js";
+import { getPrismaClient } from "../../config/database.js";
 import AppError from "../utils/AppError.js";
+
+const prisma = getPrismaClient();
 
 export const likePostService = async (postId, userId) => {
   const post = await prisma.post.findUnique({
@@ -12,26 +14,35 @@ export const likePostService = async (postId, userId) => {
 
   const existingLike = await prisma.postLike.findUnique({
     where: {
-      post_id_user_id: {
-        post_id: postId,
-        user_id: userId,
+      postId_userId: {
+        postId,
+        userId,
       },
     },
   });
 
   if (existingLike) {
-    throw new AppError("You have already liked this post", 400);
+    await prisma.postLike.delete({
+      where: {
+        postId_userId: {
+          postId,
+          userId,
+        },
+      },
+    });
+    const count = await prisma.postLike.count({ where: { postId } });
+    return { likesCount: count, isLiked: false };
   }
 
   const like = await prisma.postLike.create({
     data: {
-      post_id: postId,
-      user_id: userId,
+      postId,
+      userId,
     },
   });
 
   const count = await prisma.postLike.count({
-    where: { post_id: postId },
+    where: { postId },
   });
 
   return { like, likesCount: count, isLiked: true };
@@ -48,28 +59,29 @@ export const unlikePostService = async (postId, userId) => {
 
   const existingLike = await prisma.postLike.findUnique({
     where: {
-      post_id_user_id: {
-        post_id: postId,
-        user_id: userId,
+      postId_userId: {
+        postId,
+        userId,
       },
     },
   });
 
   if (!existingLike) {
-    throw new AppError("You have not liked this post", 404);
+    const count = await prisma.postLike.count({ where: { postId } });
+    return { likesCount: count, isLiked: false };
   }
 
   await prisma.postLike.delete({
     where: {
-      post_id_user_id: {
-        post_id: postId,
-        user_id: userId,
+      postId_userId: {
+        postId,
+        userId,
       },
     },
   });
 
   const count = await prisma.postLike.count({
-    where: { post_id: postId },
+    where: { postId },
   });
 
   return { likesCount: count, isLiked: false };
@@ -85,16 +97,16 @@ export const getPostLikesService = async (postId, userId = null) => {
   }
 
   const count = await prisma.postLike.count({
-    where: { post_id: postId },
+    where: { postId },
   });
 
   let isLiked = false;
   if (userId) {
     const userLike = await prisma.postLike.findUnique({
       where: {
-        post_id_user_id: {
-          post_id: postId,
-          user_id: userId,
+        postId_userId: {
+          postId,
+          userId,
         },
       },
     });

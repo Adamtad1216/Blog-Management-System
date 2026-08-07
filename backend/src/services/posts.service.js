@@ -154,6 +154,13 @@ export const createPost = async (data) => {
       author: { select: AUTHOR_SELECT },
       category: true,
       tags: { include: { tag: true } },
+      _count: {
+        select: {
+          likes: true,
+          comments: { where: { parentCommentId: null } },
+          bookmarks: true,
+        },
+      },
     },
   });
 };
@@ -213,6 +220,13 @@ export const getPosts = async (options = {}) => {
       author: { select: AUTHOR_SELECT },
       category: true,
       tags: { include: { tag: true } },
+      _count: {
+        select: {
+          likes: true,
+          comments: { where: { parentCommentId: null } },
+          bookmarks: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -230,6 +244,13 @@ export const getPostById = async (id, incrementViews = false) => {
           author: { select: AUTHOR_SELECT },
           category: true,
           tags: { include: { tag: true } },
+          _count: {
+            select: {
+              likes: true,
+              comments: { where: { parentCommentId: null } },
+              bookmarks: true,
+            },
+          },
         },
       });
     } catch (e) {
@@ -243,6 +264,13 @@ export const getPostById = async (id, incrementViews = false) => {
       author: { select: AUTHOR_SELECT },
       category: true,
       tags: { include: { tag: true } },
+      _count: {
+        select: {
+          likes: true,
+          comments: { where: { parentCommentId: null } },
+          bookmarks: true,
+        },
+      },
     },
   });
 };
@@ -360,6 +388,13 @@ export const updatePost = async (id, data) => {
         author: { select: AUTHOR_SELECT },
         category: true,
         tags: { include: { tag: true } },
+        _count: {
+          select: {
+            likes: true,
+            comments: { where: { parentCommentId: null } },
+            bookmarks: true,
+          },
+        },
       },
     });
   });

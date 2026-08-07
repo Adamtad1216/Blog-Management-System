@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { likePost, unlikePost, getPostLikes } from "../controllers/likes.controller.js";
-import { protect } from "../middleware/auth.middleware.js";
+import { protect, optionalAuth } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
@@ -77,6 +77,6 @@ router.delete("/posts/:id/like", protect, unlikePost);
  *       404:
  *         description: Post not found
  */
-router.get("/posts/:id/likes", getPostLikes);
+router.get("/posts/:id/likes", optionalAuth, getPostLikes);
 
 export default router;

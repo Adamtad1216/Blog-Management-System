@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CategoryModal from "../components/categories/CategoryModal.jsx";
 import PostCard from "../components/posts/PostCard.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import {
   deletePost,
   fetchCategories,
@@ -10,6 +11,7 @@ import {
 } from "../services/api.js";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,11 +25,21 @@ export default function DashboardPage() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      const params = { search: searchQuery, status: statusFilter };
+      if (user?.id) {
+        params.authorId = user.id;
+      }
       const [fetchedPosts, fetchedCategories] = await Promise.all([
-        fetchPosts({ search: searchQuery, status: statusFilter }),
+        fetchPosts(params),
         fetchCategories(),
       ]);
-      setPosts(fetchedPosts);
+      
+      // Ensure only posts authored by the logged-in user are shown in their dashboard
+      const myPosts = user?.id
+        ? fetchedPosts.filter((p) => (p.authorId || p.author?.id) === user.id)
+        : fetchedPosts;
+
+      setPosts(myPosts);
       setCategories(fetchedCategories);
     } catch (err) {
       console.error("Error loading dashboard data:", err);
@@ -38,7 +50,51 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDashboardData();
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, user?.id]);
+
+  useEffect(() => {
+    const handleLikeEvent = (e) => {
+      const { postId, likesCount } = e.detail || {};
+      if (!postId || typeof likesCount !== 'number') return;
+      setPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, _count: { ...p._count, likes: likesCount } } : p))
+      );
+    };
+
+    const handleBookmarkEvent = (e) => {
+      const { postId, isBookmarked } = e.detail || {};
+      if (!postId || typeof isBookmarked !== 'boolean') return;
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const current = p._count?.bookmarks ?? 0;
+          return { ...p, _count: { ...p._count, bookmarks: Math.max(0, current + (isBookmarked ? 1 : -1)) } };
+        })
+      );
+    };
+
+    const handleCommentEvent = (e) => {
+      const { postId, commentsCountDelta } = e.detail || {};
+      if (!postId || typeof commentsCountDelta !== 'number') return;
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const current = p._count?.comments ?? 0;
+          return { ...p, _count: { ...p._count, comments: Math.max(0, current + commentsCountDelta) } };
+        })
+      );
+    };
+
+    window.addEventListener('post-like-updated', handleLikeEvent);
+    window.addEventListener('post-bookmark-updated', handleBookmarkEvent);
+    window.addEventListener('post-comment-updated', handleCommentEvent);
+
+    return () => {
+      window.removeEventListener('post-like-updated', handleLikeEvent);
+      window.removeEventListener('post-bookmark-updated', handleBookmarkEvent);
+      window.removeEventListener('post-comment-updated', handleCommentEvent);
+    };
+  }, []);
 
   const handleDeletePost = async (id) => {
     if (
@@ -204,6 +260,7 @@ export default function DashboardPage() {
                     <th className="p-4">Category</th>
                     <th className="p-4">Status</th>
                     <th className="p-4">Views</th>
+                    <th className="p-4">Engagement</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -273,6 +330,24 @@ export default function DashboardPage() {
 
                       <td className="p-4 text-xs font-mono text-slate-400">
                         {post.viewsCount || 0}
+                      </td>
+
+                      <td className="p-4 text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1 text-rose-400 font-bold" title="Likes">
+                            ❤️ {post._count?.likes ?? 0}
+                          </span>
+                          <Link
+                            to={`/posts/${post.id}#comments`}
+                            className="flex items-center gap-1 text-indigo-400 font-bold hover:underline hover:text-indigo-300 transition-colors"
+                            title="Click to view and add comments"
+                          >
+                            💬 {post._count?.comments ?? 0}
+                          </Link>
+                          <span className="flex items-center gap-1 text-amber-400 font-bold" title="Bookmarks">
+                            🔖 {post._count?.bookmarks ?? 0}
+                          </span>
+                        </div>
                       </td>
 
                       <td className="p-4 text-right space-x-2">
