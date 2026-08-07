@@ -53,6 +53,7 @@ const router = Router();
  *         description: Like or post not found
  */
 router.post("/posts/:id/like", protect, likePost);
+
 router.delete("/posts/:id/like", protect, unlikePost);
 
 /**

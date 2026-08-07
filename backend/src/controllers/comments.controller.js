@@ -8,6 +8,9 @@ import {
 import { successResponse } from "../utils/response.js";
 import AppError from "../utils/AppError.js";
 
+
+
+
 export const getPostComments = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
@@ -18,6 +21,7 @@ export const getPostComments = async (req, res, next) => {
     next(error);
   }
 };
+
 
 export const createComment = async (req, res, next) => {
   try {
@@ -37,6 +41,7 @@ export const createComment = async (req, res, next) => {
   }
 };
 
+
 export const replyComment = async (req, res, next) => {
   try {
     const { id: parentCommentId } = req.params;
@@ -55,6 +60,7 @@ export const replyComment = async (req, res, next) => {
   }
 };
 
+
 export const updateComment = async (req, res, next) => {
   try {
     const { id: commentId } = req.params;
@@ -72,6 +78,7 @@ export const updateComment = async (req, res, next) => {
     next(error);
   }
 };
+
 
 export const deleteComment = async (req, res, next) => {
   try {
