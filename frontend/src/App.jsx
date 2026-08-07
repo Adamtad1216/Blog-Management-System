@@ -1,16 +1,18 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import ProtectedRoute from './components/common/ProtectedRoute.jsx';
-import Footer from './components/layout/Footer.jsx';
-import Navbar from './components/layout/Navbar.jsx';
-import { AuthProvider } from './context/AuthContext.jsx';
-import CategoryPage from './pages/CategoryPage.jsx';
-import CreatePostPage from './pages/CreatePostPage.jsx';
-import DashboardPage from './pages/DashboardPage.jsx';
-import EditPostPage from './pages/EditPostPage.jsx';
-import HomePage from './pages/HomePage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import PostDetailPage from './pages/PostDetailPage.jsx';
-import SearchPage from './pages/SearchPage.jsx';
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "./components/common/ProtectedRoute.jsx";
+import Footer from "./components/layout/Footer.jsx";
+import Navbar from "./components/layout/Navbar.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import CategoryPage from "./pages/CategoryPage.jsx";
+import CreatePostPage from "./pages/CreatePostPage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import EditPostPage from "./pages/EditPostPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import PostDetailPage from "./pages/PostDetailPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import SearchPage from "./pages/SearchPage.jsx";
 
 function App() {
   return (
@@ -24,11 +26,23 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/posts/:id" element={<PostDetailPage />} />
               <Route path="/categories" element={<CategoryPage />} />
-              <Route path="/categories/:categorySlug" element={<CategoryPage />} />
+              <Route
+                path="/categories/:categorySlug"
+                element={<CategoryPage />}
+              />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
 
-              {/* Protected Author Routes */}
+              {/* Protected Author & User Routes */}
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/dashboard"
                 element={

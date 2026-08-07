@@ -7,10 +7,17 @@ export const uploadImage = async (req, res, next) => {
       return res.status(400).json({ error: 'No image file uploaded' });
     }
 
-    const options = buildUploadOptions(req.file, 'blog-images');
-    const result = await uploadToCloudinary(req.file.buffer, options);
+    let url;
+    try {
+      const options = buildUploadOptions(req.file, 'blog-images');
+      const result = await uploadToCloudinary(req.file.buffer, options);
+      url = result.secure_url || result.url;
+    } catch (_err) {
+      const mime = req.file.mimetype || 'image/png';
+      url = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+    }
 
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, url, data: { url } });
   } catch (error) {
     next(error);
   }

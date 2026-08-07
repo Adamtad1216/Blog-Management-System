@@ -1,51 +1,112 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from "react";
+import {
+  fetchCurrentUser,
+  loginUser,
+  logoutUser,
+  registerUser,
+} from "../services/api.js";
 
 const AuthContext = createContext();
 
-// Default mock authenticated author user (Seed Author)
-const MOCK_AUTHOR = {
-  id: '079cdd69-05d4-4c6b-b8bf-9883afe4c452',
-  fullName: 'John Author',
-  username: 'john_author',
-  email: 'author@example.com',
-  avatar: 'https://example.com/avatars/john.jpg',
-  role: 'author',
-};
+const TOKEN_KEY = "blog_token";
+const REFRESH_TOKEN_KEY = "blog_refresh_token";
+const USER_KEY = "blog_user";
+
+function getStoredUser() {
+  const savedUser = localStorage.getItem(USER_KEY);
+  return savedUser ? JSON.parse(savedUser) : null;
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('blog_user');
-    return savedUser ? JSON.parse(savedUser) : MOCK_AUTHOR;
-  });
-
-  const [token, setToken] = useState(() => {
-    return localStorage.getItem('blog_token') || 'mock-jwt-token';
-  });
+  const [user, setUser] = useState(getStoredUser);
+  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
+  const [refreshToken, setRefreshToken] = useState(() =>
+    localStorage.getItem(REFRESH_TOKEN_KEY),
+  );
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem('blog_user', JSON.stringify(user));
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
     } else {
-      localStorage.removeItem('blog_user');
+      localStorage.removeItem(USER_KEY);
     }
   }, [user]);
 
   useEffect(() => {
     if (token) {
-      localStorage.setItem('blog_token', token);
+      localStorage.setItem(TOKEN_KEY, token);
     } else {
-      localStorage.removeItem('blog_token');
+      localStorage.removeItem(TOKEN_KEY);
     }
   }, [token]);
 
-  const login = (userData, authToken = 'mock-jwt-token') => {
-    setUser(userData);
-    setToken(authToken);
+  useEffect(() => {
+    if (refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    } else {
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    }
+  }, [refreshToken]);
+
+  const setAuthSession = (authData) => {
+    setUser(authData.user || null);
+    setToken(authData.accessToken || null);
+    setRefreshToken(authData.refreshToken || null);
   };
 
-  const logout = () => {
+  const clearAuthSession = () => {
     setUser(null);
     setToken(null);
+    setRefreshToken(null);
+  };
+
+  useEffect(() => {
+    const bootstrapAuth = async () => {
+      if (!token) {
+        setAuthReady(true);
+        return;
+      }
+
+      try {
+        const currentUser = await fetchCurrentUser();
+        setUser(currentUser || null);
+      } catch (error) {
+        clearAuthSession();
+      } finally {
+        setAuthReady(true);
+      }
+    };
+
+    bootstrapAuth();
+  }, [token]);
+
+  const login = async (credentials) => {
+    const authData = await loginUser(credentials);
+    setAuthSession(authData || {});
+    return authData?.user || null;
+  };
+
+  const register = async (payload) => {
+    const authData = await registerUser(payload);
+    setAuthSession(authData || {});
+    return authData?.user || null;
+  };
+
+  const logout = async () => {
+    try {
+      if (refreshToken) {
+        await logoutUser(refreshToken);
+      }
+    } catch (_error) {
+      // Clear local session even when backend logout fails.
+    } finally {
+      clearAuthSession();
+    }
+  };
+
+  const updateUserInContext = (updatedUserData) => {
+    setUser((prev) => (prev ? { ...prev, ...updatedUserData } : updatedUserData));
   };
 
   return (
@@ -53,9 +114,13 @@ export function AuthProvider({ children }) {
       value={{
         user,
         token,
-        isAuthenticated: !!user,
+        refreshToken,
+        authReady,
+        isAuthenticated: !!user && !!token,
         login,
+        register,
         logout,
+        updateUserInContext,
       }}
     >
       {children}

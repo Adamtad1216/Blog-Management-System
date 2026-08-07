@@ -1,36 +1,35 @@
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || "/dashboard";
 
-  const [email, setEmail] = useState('author@example.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
-    setTimeout(() => {
-      // Authenticate with seeded author user session
-      const authenticatedUser = {
-        id: '079cdd69-05d4-4c6b-b8bf-9883afe4c452',
-        fullName: 'John Author',
-        username: 'john_author',
-        email: email,
-        avatar: 'https://example.com/avatars/john.jpg',
-        role: 'author',
-      };
-
-      login(authenticatedUser, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockToken');
+    try {
+      setLoading(true);
+      setError("");
+      await login({ email: email.trim(), password });
       setLoading(false);
       navigate(from, { replace: true });
-    }, 400);
+    } catch (err) {
+      const apiMessage = err?.response?.data?.message;
+      setError(
+        apiMessage ||
+          "Login failed. Please check your credentials and try again.",
+      );
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,15 +41,26 @@ export default function LoginPage() {
               🔐
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-slate-100">Author Authentication</h2>
-          <p className="text-xs text-slate-400">Log in to access your Dashboard, Create articles, and Manage content.</p>
+          <h2 className="text-2xl font-bold text-slate-100">Account Login</h2>
+          <p className="text-xs text-slate-400">
+            Log in to manage posts, categories, and your author workspace.
+          </p>
         </div>
+
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleLoginSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Author Email</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Email Address
+            </label>
             <input
               type="email"
+              placeholder="e.g. user@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -59,9 +69,12 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Password
+            </label>
             <input
               type="password"
+              placeholder="Your account password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -74,14 +87,18 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
           >
-            {loading ? 'Authenticating...' : 'Sign In to Author Portal'}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 space-y-1">
-          <p className="font-semibold text-slate-300">🔑 Seeded Demo Author Credentials:</p>
-          <p>• Email: <span className="font-mono text-indigo-300">author@example.com</span></p>
-          <p>• Role: <span className="font-mono text-indigo-300">Author</span></p>
+        <div className="text-center text-xs text-slate-400">
+          Need an account?{" "}
+          <Link
+            to="/register"
+            className="font-semibold text-indigo-300 hover:text-indigo-200"
+          >
+            Create one
+          </Link>
         </div>
       </div>
     </div>
